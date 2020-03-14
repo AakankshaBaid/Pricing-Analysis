@@ -1,0 +1,336 @@
+---
+title: "Assignment 3"
+author: "Aakanksha Baid"
+date: "2/8/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1
+
+Perform the analysis for Q1 and the fill out this Table.
+
+```{r}
+# 1a
+load("Detergent.RData")
+
+library(psych)
+describe(detergent_DF)
+
+# function for market share
+mkt_share <- function(df_cols)
+  {
+  market_tide128 = sum(df_cols[1]*df_cols[2])
+  market_tide64  = sum(df_cols[3]*df_cols[4])
+  market_wisk64  = sum(df_cols[5]*df_cols[6])
+  total_market   = market_tide128 + market_tide64 + market_wisk64
+  
+  share_tide128 = market_tide128/total_market 
+  share_tide64  = market_tide64/total_market
+  share_wisk64  = market_wisk64/total_market
+    
+  b=c(share_tide128,share_tide64,share_wisk64)
+  return(b)
+  }
+
+mkt_share(detergent_DF[5:10])
+```
+
+
+: Table of marketshare (in percentage) and price statistics (in dollars)
+
++---------------+---------------+-------------+--------------+-----------+
+| Product       | Marketshare   | Mean Price  | Median Price | Std. Dev  |          
++===============+===============+=============+==============+===========+
+| Tide 128 oz   | 56.85%        | 8.36        | 8.48         | 0.76      |
++---------------+---------------+-------------+--------------+-----------+
+| Tide 64 oz    | 26.33%        | 4.38        | 4.42         | 0.40      |
++---------------+---------------+-------------+--------------+-----------+
+| Wisk 64 oz    | 16.81%        | 4.07        | 4.19         | 0.49      |
++---------------+---------------+-------------+--------------+-----------+
+
+
+```{r}
+# 1b
+detergent_DF$pg_128_64 = detergent_DF$p_tide128 - detergent_DF$p_tide64
+
+detergent_DF$pg_64_64 = detergent_DF$p_tide64 - detergent_DF$p_wisk64
+
+describe(detergent_DF)
+```
+
+: Table of price gap statistics (in dollars)
+
++----------------------------+----------------+------------------+---------+
+| Gap Items                  | Mean Price gap | Median Price gap | Std. Dev|          
++============================+================+==================+=========+
+| Tide 128 oz and Tide 64 oz | 3.99           | 4.09             | 0.87    | 
++----------------------------+----------------+------------------+---------+
+| Tide 64 oz and Wisk 64 oz  | 0.30           | 0.26             | 0.59    |
++----------------------------+----------------+------------------+---------+
+
+```{r}
+# 1c
+hist(detergent_DF$pg_128_64,main="Histogram of Price gap between Tide 128oz and Tide 64oz",xlab="Price gap between Tide 128oz and Tide 64oz")
+
+hist(detergent_DF$pg_64_64,main="Histogram of Price gap between Tide 64oz and Wisk 64oz",xlab="Price gap between Tide 64oz and Wisk 64oz")
+```
+
+## 1d
+Price gap histograms and summary statistics show a normally distributed price gap between Tide 128 oz and Tide 64 oz and also between Tide 64 oz and Wisk 64 oz. The mean is nearly equal to the median. There is not enough variation in the price gaps across stores and weeks to estimate the cross price elasticities between Tide  64 and Wisk 64 as the standard deviation of price is too low. There is information available to calculate cross-price elasticities for Tide 128.
+
+
+## Question 2a
+```{r}
+detergent_DF$velocity_64 = detergent_DF$q_tide64/detergent_DF$acv
+
+detergent_DF$velocity_128 = detergent_DF$q_tide128/detergent_DF$acv
+```
+
+
+## Question 2b
+To control for the size of the store and the volume of sales going through the store so that a comparison can be made between stores of unequal sizes.
+
+
+## Question 2c
+
+```{r}
+log_lin_model_Tide64 = lm(log(velocity_64) ~ log(p_tide64) + log(p_tide128) + log(p_wisk64), data = detergent_DF)
+
+log_lin_model_Tide128 = lm(log(velocity_128) ~ log(p_tide64) + log(p_tide128) + log(p_wisk64), data = detergent_DF)
+
+log_lin_model_Tide64
+
+log_lin_model_Tide128
+```
+
+
+## Question 2d
+Demand estimate makes sense for Tide 128 but not for Tide 64. 
+1) The Tide64 cross price elasticity with Wisk64 is negative, when it should be positive. The magnitude and signs of the Tide64 own price elasticity and cross price elasticity with Tide128 as expected. 
+
+2) Tide128 cross price elasticities are positive and own price elasticity is negative, which is as expected.
+
+
+
+
+## Question 3a
+```{r}
+log_lin_model_Tide64 = lm(log(velocity_64) ~ log(p_tide64) + log(p_tide128) + log(p_wisk64) + week, data = detergent_DF)
+
+log_lin_model_Tide128 = lm(log(velocity_128) ~ log(p_tide64) + log(p_tide128) + log(p_wisk64) + week, data = detergent_DF)
+
+log_lin_model_Tide64
+
+log_lin_model_Tide128
+```
+
+
+
+## Question 3b
+By adding the time trend there is an improvement over the model specification in question 2 as the cross-price elasticity between Tide64 and Wisk64 is positive, as expected from theory. The signs and magnitudes of other estimated parameters are also as expected.
+
+
+Adding a time trend is important because
+i) detergent is not a product that consumers buy very frequently, so adding a time trend helps take into accounts any seasonality and trend impacts
+ii) it gives us a better view of how detergent demand varies with time and the regression takes into account this variation to give us better demand estimates
+
+
+
+## Question 4a
+```{r}
+# 4a
+mean(detergent_DF$promoflag)
+```
+Thus 81.85% of store-weeks had at least one of the detergents promoted.
+
+
+## Question 4b
+```{r}
+# 4b
+detergent_DF_2 = subset(detergent_DF, promoflag != 1)
+
+log_lin_model_Tide64 = lm(log(velocity_64) ~ log(p_tide64) + log(p_tide128) + log(p_wisk64) + week, data = detergent_DF_2)
+
+log_lin_model_Tide128 = lm(log(velocity_128) ~ log(p_tide64) + log(p_tide128) + log(p_wisk64) + week, data = detergent_DF_2)
+
+log_lin_model_Tide64
+
+log_lin_model_Tide128
+```
+
+The own-price elasticities have reduced in magnitude and we see an improvement for both products, which is intuitively making sense as the product demand is no longer highly elastic due to the impact of promotions.
+The cross-price elasticities between Tide64-Wisk64 and Tide128-Tide64 are negative, which is unexpected and does not make sense.
+
+
+
+## Question 5a
+```{r}
+library(knitr) 
+library(broom)
+
+log_lin_model_Tide64 = lm(log(velocity_64) ~ log(p_tide64) + log(p_tide128) + log(p_wisk64) + week + as.factor(store), data = detergent_DF_2)
+
+log_lin_model_Tide128 = lm(log(velocity_128) ~ log(p_tide64) + log(p_tide128) + log(p_wisk64) + week + as.factor(store), data = detergent_DF_2)
+
+kable(tidy(log_lin_model_Tide64)[1:5,1:2],digits = 3, align = 'c')
+
+kable(tidy(log_lin_model_Tide128)[1:5,1:2],digits = 3, align = 'c')
+
+```
+
+
+## Question 5b
+The own and cross price elasticities for both products have improved in magnitude after the inclusion of store fixed effects. The sign of the cross price elasticity between Tide64 and Wisk64 has not changed and is still negative.
+
+
+## Question 5c
+```{r}
+log_lin_model_Tide64 = lm(log(q_tide64) ~ log(p_tide64) + log(p_tide128) + log(p_wisk64) + week + as.factor(store), data = detergent_DF_2)
+
+log_lin_model_Tide128 = lm(log(q_tide128) ~ log(p_tide64) + log(p_tide128) + log(p_wisk64) + week + as.factor(store), data = detergent_DF_2)
+
+kable(tidy(log_lin_model_Tide64)[1:5,1:2],digits = 4, align = 'c')
+
+kable(tidy(log_lin_model_Tide128)[1:5,1:2],digits = 4, align = 'c')
+```
+
+The elasticity estimates and the time trend are exactly the same across the two regressions. The absence of a difference is unexpected. I believe the time trends and elasticity estimates are same because by adding store fixed effects in the regressions, we have effectively controlled for the store size and store volume of sales thereby making the use of velocity redundant.
+
+
+
+ 
+## Question 6
+```{r}
+# 6a
+sprintf("The base price of Tide 128 oz is $%0.3f",mean(detergent_DF_2$p_tide128))
+
+# 6b
+sprintf("The base price of Tide 64 oz is $%0.3f",mean(detergent_DF_2$p_tide64))
+
+# 6c
+sprintf("The base volume of Tide 128 oz is %.f",86*52*mean(detergent_DF_2$q_tide128))
+
+# 6d
+sprintf("The base volume of Tide 64 oz is %.f",86*52*mean(detergent_DF_2$q_tide64))
+```
+
+## Question 6e
+```{r}
+Base_Profit_Tide128 = (mean(detergent_DF_2$p_tide128)*(1-0.25) - (0.027*128))*86*52*mean(detergent_DF_2$q_tide128) 
+
+Base_Profit_Tide64 = (mean(detergent_DF_2$p_tide64)*(1-0.25) - (0.027*64))*86*52*mean(detergent_DF_2$q_tide64)
+
+sprintf("The average yearly base total profit for Tide is $%.f",Base_Profit_Tide128 + Base_Profit_Tide64)
+```
+
+
+## Question 6f
+```{r}
+# All new volumes will be calculated based on the following formulas
+
+# Tide128_New_Volume = Tide128*Base_Volume * (1+Tide128_Price_Change)^Tide128_Own_Elasticity * (1+Tide64_Price_Change)^Tide64_Cross_Elasticity
+
+# Tide64_New_Volume = Tide64*Base_Volume * (1+Tide64_Price_Change)^Tide64_Own_Elasticity * (1+Tide128_Price_Change)^Tide128_Cross_Elasticity
+
+#1) A simultaneous 5 percent increase in the prices of Tide 128 and Tide 64
+sprintf("1) The new volume of Tide 128 oz is %.f",
+        86*52*mean(detergent_DF_2$q_tide128) * ((1 + 0.05)^-2.3836) * ((1 + 0.05)^0.2097))
+
+sprintf("1) The new volume of Tide 64 oz is %.f",
+        86*52*mean(detergent_DF_2$q_tide64) * ((1 + 0.05)^-1.4867) * ((1 + 0.05)^0.9028))
+
+
+#2) A simultaneous 5 percent decrease in the prices of Tide 128 and Tide 64
+sprintf("2) The new volume of Tide 128 oz is %.f",
+        86*52*mean(detergent_DF_2$q_tide128) * ((1 - 0.05)^-2.3836) * ((1 - 0.05)^0.2097))
+
+sprintf("2) The new volume of Tide 64 oz is %.f",
+        86*52*mean(detergent_DF_2$q_tide64) * ((1 - 0.05)^-1.4867) * ((1 - 0.05)^0.9028))
+
+
+#3) A simultaneous 5 percent increase in the price of Tide 128 and 5 percent decrease in the price of Tide 64
+sprintf("3) The new volume of Tide 128 oz is %.f",
+        86*52*mean(detergent_DF_2$q_tide128) * ((1 + 0.05)^-2.3836) * ((1 - 0.05)^0.2097))
+
+sprintf("3) The new volume of Tide 64 oz is %.f",
+        86*52*mean(detergent_DF_2$q_tide64) * ((1 - 0.05)^-1.4867) * ((1 + 0.05)^0.9028))
+
+
+#4) A simultaneous 5 percent decrease in the price of Tide 128 and 5 percent increase in the price of Tide 64
+sprintf("4) The new volume of Tide 128 oz is %.f",
+        86*52*mean(detergent_DF_2$q_tide128) * ((1 - 0.05)^-2.3836) * ((1 + 0.05)^0.2097))
+
+sprintf("4) The new volume of Tide 64 oz is %.f",
+        86*52*mean(detergent_DF_2$q_tide64) * ((1 + 0.05)^-1.4867) * ((1 - 0.05)^0.9028))
+```
+
+## Question 6f
+```{r}
+# All new volumes will be calculated based on the following formulas
+
+# Tide128_New_Expected_Profits = (Tide128_Base_Price * (1+Tide128_Price_Change) * (1-Tide_Retail_Margin) - 0.027*128) * Tide128_New_Volume
+
+# Tide64_New_Expected_Profits = Tide64_Base_Price * (1+Tide64_Price_Change) * (1-Tide_Retail_Margin) - (0.027*64*Tide64_New_Volume)
+
+# Total_New_Expected_Profit = Tide128_New_Expected_Profits + Tide64_New_Expected_Profits
+
+# 1) 
+Total_New_Expected_Profit = (mean(detergent_DF_2$p_tide128)*(1+0.05)*(1-0.25) - (0.027*128))*222205 +  (mean(detergent_DF_2$p_tide64)*(1+0.05)*(1-0.25) - (0.027*64))*275007
+
+sprintf("1) The new expected profit is $%.f",Total_New_Expected_Profit)
+
+# 2) 
+Total_New_Expected_Profit = (mean(detergent_DF_2$p_tide128)*(1-0.05)*(1-0.25) - (0.027*128))*276212 +  (mean(detergent_DF_2$p_tide64)*(1-0.05)*(1-0.25) - (0.027*64))*291557
+
+sprintf("2) The new expected profit is $%.f",Total_New_Expected_Profit)
+
+# 3) 
+Total_New_Expected_Profit = (mean(detergent_DF_2$p_tide128)*(1+0.05)*(1-0.25) - (0.027*128))*217590 +  (mean(detergent_DF_2$p_tide64)*(1-0.05)*(1-0.25) - (0.027*64))*319128
+
+sprintf("3) The new expected profit is $%.f",Total_New_Expected_Profit)
+
+# 4) 
+Total_New_Expected_Profit = (mean(detergent_DF_2$p_tide128)*(1-0.05)*(1-0.25) - (0.027*128))*282071 +  (mean(detergent_DF_2$p_tide64)*(1+0.05)*(1-0.25) - (0.027*64))*251248
+
+sprintf("4) The new expected profit is $%.f",Total_New_Expected_Profit)
+```
+
+
+: Table of quantities sold and profits when Tide changes the price of Tide 64 and 128. Price changes are shown in percentages
+
++---------------+---------------+-------------+--------------+---------------+
+| del_price_128 | del_price_64  | q_128       | q_64         | Total profits |          
++===============+===============+=============+==============+===============+
+| 0.05          | 0.05          |222205       |275007        | $1,192,576    |
++---------------+---------------+-------------+--------------+---------------+
+| -0.05         | -0.05         |276212       |291557        | $1,123,340    |
++---------------+---------------+-------------+--------------+---------------+
+| 0.05          | -0.05         |217590       |319128        | $1,149,046    |
++---------------+---------------+-------------+--------------+---------------+
+| -0.05         | 0.05          |282071       |251248        | $1,164,672    |
++---------------+---------------+-------------+--------------+---------------+
+
+Based on the above table, the prices of Tide are not optimal as two of the above combinations will still lead to a higher average expected profit compared to the average profit of $1,161,182 from current prices. 
+
+Tide prices can be increased by at least 5% for each product to maximize profit under the modeled scenarios.
+
+
+
+## Question 7
+
+a) What is the extent of cannibalization within the Tide product line?
+
+Yes there is cannibalization within the Tide product line as the cross price elasticity from the log model of Tide 64 in 5c is high at 0.9. Tide 128 cannibalizes Tide 64.
+
+b) Does Tide face a competitive threat from Wisk?
+
+Tide 64 does not face a competitive threat from Wisk as the log model in 5c gives a negative cross price elasticity, meaning that if price of Tide 64 is increased, the sales of Wisk 64 decreases.
+However, Tide 128 faces a competitive threat from Wisk 64 as Wisk 64 has a positive cross price elasticity for Tide 128 at 1.16.
+
+c) How do you evaluate the current pricing tactics? Do you recommend changes?
+
+Seeing the results from 6, I recommend changes to the current pricing tactics. Assuming that Wisk does not reduce its prices, both Tide 64 and Tide 128 can increase prices to increase profits as even 5% increase in their prices lead to higher profits than the base profit. 
